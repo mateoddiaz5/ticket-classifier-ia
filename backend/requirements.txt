@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+
+pydantic
+pydantic-settings
+
+openai
+
+chromadb
+
+streamlit
+
+python-dotenv
+
+requests
+
+typing-extensions
