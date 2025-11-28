@@ -83,6 +83,15 @@ class PromptManager:
         system_prompt += self._format_rag_documents(rag_results) + "\n"
 
         system_prompt += (
+            "IMPORTANTE:\n"
+            "- El campo 'tiempo_estimado_resolucion' NO ES el SLA.\n"
+            "- Debe calcularse usando EXCLUSIVAMENTE los tiempos históricos recuperados por el RAG.\n"
+            "- Si los documentos históricos muestran tiempos entre 40 y 60 minutos, el estimado debe estar en ese rango.\n"
+            "- Solo usar el SLA si NO existe evidencia histórica (RAG=vacío o similitud < 0.5).\n"
+            "- Nunca inventes tiempos que no se basen en evidencia.\n\n"
+        )
+
+        system_prompt += (
             "--- FORMATO DE RESPUESTA (JSON) ---\n"
             "Debes cumplir EXACTAMENTE con el siguiente esquema JSON:\n"
             f"{output_schema_json}\n"
