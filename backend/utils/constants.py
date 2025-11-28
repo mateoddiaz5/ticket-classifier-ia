@@ -15,24 +15,25 @@ SLA_MATRIX: Dict[str, Dict[str, str]] = {
     "Crítica": {
         "primera_respuesta": "15 minutos",
         "asistencia": "30 minutos",
-        "solucion": "4 horas",
+        "solucion": "1 hora",
     },
     "Alta": {
         "primera_respuesta": "30 minutos (Horario Laboral)",
         "asistencia": "1 hora (Horario Laboral)",
-        "solucion": "2 días hábiles",
+        "solucion": "4 horas",
     },
     "Media": {
         "primera_respuesta": "1 hora (Horario Laboral)",
         "asistencia": "4 horas (Horario Laboral)",
-        "solucion": "5 días hábiles",
+        "solucion": "24 horas",
     },
     "Baja": {
         "primera_respuesta": "4 horas (Horario Laboral)",
         "asistencia": "1 día hábil",
-        "solucion": "10 días hábiles",
+        "solucion": "72 horas",
     },
 }
+
 
 # Factores de Impacto en el Negocio (Boost de Prioridad) 
 # Información clave de los clientes extraída del documento [cite: 39, 40, 41, 42]
