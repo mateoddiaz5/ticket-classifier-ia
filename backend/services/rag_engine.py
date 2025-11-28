@@ -5,19 +5,18 @@ from typing import List, Dict
 import chromadb
 from openai import OpenAI
 
-from backend.config import settings,DATA_DIR
+from backend.config import settings, DATA_DIR
 from backend.models.output_schema import RAGDocument
 
 
 class RAGEngine:
     """
     Motor RAG funcional usando:
-    - OpenAI embeddings (text-embedding-3-small)
+    - OpenAI embeddings
     - ChromaDB persistente
     """
 
     def __init__(self):
-
         # Inicializar OpenAI Client
         try:
             self.openai = OpenAI(api_key=settings.OPENAI_API_KEY)
@@ -75,10 +74,10 @@ class RAGEngine:
         embeddings = []
 
         for item in data:
-
             text = (
                 f"Título: {item['titulo']}.\n"
                 f"Descripción: {item['descripcion']}.\n"
+                f"Categoría: {item['categoria']}.\n"
                 f"Solución: {item['solucion']}"
             )
 
@@ -91,8 +90,9 @@ class RAGEngine:
             metadatas.append({
                 "ticket_id": item["ticket_id"],
                 "categoria": item["categoria"],
-                "solucion": item["solucion"]
+                "solucion": f"{item['solucion']} (Tiempo de resolución histórico: {item['tiempo_resolucion']})"
             })
+
             ids.append(str(item["ticket_id"]))
 
         self.collection.add(
@@ -105,7 +105,11 @@ class RAGEngine:
         print(f"Indexación completada. Total documentos: {self.collection.count()}")
 
     # Recuperación
-    def retrieve_documents(self, query_text: str, k: int = 3):
+    def retrieve_documents(self, query_text: str, k: int = 5):
+        """
+        Recupera documentos similares.
+        Mejora: k aumentado a 5 para mejor recall.
+        """
 
         embedding = self._embed_text(query_text)
         if embedding is None:
@@ -128,15 +132,17 @@ class RAGEngine:
             result["metadatas"][0],
             result["distances"][0],
         ):
-            score = 1 / (1 + dist)
+
+            # ⚡ similitud basada en distancia invertida
+            score = round(1 / (1 + dist), 4)
 
             docs.append(
                 RAGDocument(
                     ticket_id=meta.get("ticket_id", "N/A"),
-                    titulo=doc.split("\n")[0].replace("Título: ", ""),
+                    titulo=doc.split("\n")[0].replace("Título:", "").strip(),
                     categoria=meta.get("categoria", "N/A"),
                     solucion_resumen=meta.get("solucion", "N/A"),
-                    similitud_score=round(score, 4),
+                    similitud_score=score,
                 )
             )
 

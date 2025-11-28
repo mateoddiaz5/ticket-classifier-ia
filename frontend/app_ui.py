@@ -3,23 +3,35 @@ import requests
 import json
 from typing import Dict, Any
 
-# Importamos la lista de clientes para el dropdown
+# Importar lista de clientes desde el backend (si existe)
 try:
     from backend.utils.constants import CLIENT_LIST
 except ImportError:
-    CLIENT_LIST = ["Banco del Mañana", "TechFin Solutions", "Retail Express", "Logística Rápida", "Otro Cliente"]
+    CLIENT_LIST = [
+        "TechFin Solutions", 
+        "Retail Express", 
+        "LegalVerify Corp", 
+        "Logística Rápida", 
+        "Recursos Humanos S.A.",
+        "Marketing Cloud E-commerce",
+        "Global",
+        "HealthSecure",
+        "Banco del Mañana",
+        "Telecom Innova",
+        "Otro Cliente"
+    ]
 
-# Configuración de Streamlit
+# Configuración general de Streamlit
 st.set_page_config(
     page_title="Clasificador de Tickets por IA",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# URL del Backend FastAPI
+# URL local del backend
 API_URL = "https://ticket-classifier-ia.onrender.com/classify"
 
-# Colores para prioridad
+# colores por prioridad
 PRIORITY_COLORS = {
     "P1": "#dc3545",
     "P2": "#ffc107",
@@ -27,13 +39,11 @@ PRIORITY_COLORS = {
     "P4": "#28a745",
 }
 
-# Función para llamar al backend
+# FUNCIÓN: Llamado al backend
 def classify_ticket_api(ticket_data: Dict[str, Any]):
-    """Envía los datos del ticket al backend FastAPI."""
     try:
         response = requests.post(API_URL, json=ticket_data)
-        
-        # Si FastAPI devuelve un 500 con HTML → evitar fallo
+
         if response.status_code >= 400:
             try:
                 detail = response.json().get("detail", "Error desconocido.")
@@ -41,7 +51,7 @@ def classify_ticket_api(ticket_data: Dict[str, Any]):
                 detail = "El backend devolvió una respuesta no JSON."
             st.error(f"Error HTTP {response.status_code}: {detail}")
             return None
-        
+
         return response.json()
 
     except requests.exceptions.ConnectionError:
@@ -52,22 +62,27 @@ def classify_ticket_api(ticket_data: Dict[str, Any]):
         return None
 
 
-# Mostrar resultados
+# FUNCIÓN: Mostrar los resultados
 def display_classification_result(result: Dict[str, Any]):
-    st.subheader("Resultados de la Clasificación ")
-    
+    st.subheader("Resultados de la Clasificación")
+
     col1, col2, col3, col4 = st.columns(4)
 
     priority = result.get("prioridad", "N/A")
     urgency = result.get("urgencia", "N/A")
-    sla = result.get("sla_solucion", "N/A")
+    sla = result.get("sla_objetivo", "N/A")
     confidence = f"{result.get('nivel_confianza', 0.0):.1f}%"
 
-    # Prioridad con color
     color = PRIORITY_COLORS.get(priority, "gray")
+
+    # Prioridad visual
     col1.markdown(
-        f'<div style="background-color: {color}; padding: 10px; border-radius: 5px; color: white;">'
-        f'<h3>{priority}</h3><p>Prioridad</p></div>',
+        f'''
+        <div style="background-color: {color}; padding: 10px; border-radius: 8px; color: white; text-align:center;">
+            <h2 style="margin:0;">{priority}</h2>
+            <small>Prioridad</small>
+        </div>
+        ''',
         unsafe_allow_html=True
     )
 
@@ -78,62 +93,65 @@ def display_classification_result(result: Dict[str, Any]):
     st.markdown("---")
 
     st.info(f"**Categoría Sugerida:** {result.get('categoria_sugerida', 'N/A')}")
-    st.code(f"Tiempo Estimado de Resolución: {result.get('tiempo_estimado_resolucion', 'N/A')}", language='text')
+    st.code(
+        f"Tiempo Estimado de Resolución (histórico RAG): {result.get('tiempo_estimado_resolucion', 'N/A')}",
+        language='text'
+    )
 
-    # Evidencia RAG segura
     with st.expander("Justificación y Evidencia RAG"):
-        st.markdown("##### Lógica de Clasificación:")
+        st.markdown("### 🧠 Justificación del Modelo")
         st.write(result.get("justificacion_modelo", "Sin justificación."))
 
-        st.markdown("##### 📚 Evidencia RAG Utilizada:")
-
+        st.markdown("### 📚 Evidencia RAG Utilizada")
         rag_docs = result.get("documentos_rag_usados") or []
 
         if rag_docs:
             rag_table_data = [
                 {
-                    "ID": doc.get('ticket_id'),
-                    "Título": doc.get('titulo'),
+                    "ID": doc.get("ticket_id"),
+                    "Título": doc.get("titulo"),
+                    "Categoría": doc.get("categoria"),
                     "Similitud": f"{doc.get('similitud_score', 0):.2f}",
-                    "Solución Histórica": doc.get('solucion_resumen'),
+                    "Solución Histórica": doc.get("solucion_resumen", ""),
                 }
                 for doc in rag_docs
             ]
             st.dataframe(rag_table_data, use_container_width=True)
         else:
-            st.markdown("*No se encontró evidencia RAG relevante.*")
+            st.warning("No se encontró evidencia RAG relevante.")
 
     st.markdown("---")
 
     # Feedback Loop
-    st.subheader("✅ Retroalimentación (Feedback Loop)")
+    st.subheader("🔄 Feedback Loop")
 
     colA, colB = st.columns(2)
 
     if colA.button("Confirmar Clasificación", use_container_width=True):
-        st.session_state['feedback_status'] = "CONFIRMADO"
+        st.session_state["feedback_status"] = "CONFIRMADO"
         st.success("Clasificación confirmada.")
 
     if colB.button("Corregir Clasificación", use_container_width=True):
-        st.session_state['feedback_status'] = "CORREGIDO"
+        st.session_state["feedback_status"] = "CORREGIDO"
         st.warning("Clasificación marcada para corrección.")
 
     st.sidebar.metric("Estado Feedback", st.session_state.get("feedback_status", "Pendiente"))
 
 
-# APP PRINCIPAL
+
+# APLICACIÓN PRINCIPAL
 def main():
     st.title("Sistema Inteligente de Clasificación de Tickets")
     st.markdown("---")
 
-    # Estado inicial
-    if 'classification_result' not in st.session_state:
-        st.session_state['classification_result'] = None
-    if 'feedback_status' not in st.session_state:
-        st.session_state['feedback_status'] = "Pendiente"
+    if "classification_result" not in st.session_state:
+        st.session_state["classification_result"] = None
+    if "feedback_status" not in st.session_state:
+        st.session_state["feedback_status"] = "Pendiente"
 
+    # SIDEBAR: Formulario Ticket
     with st.sidebar:
-        st.header("Radicar Nuevo Ticket")
+        st.header("📝 Radicar Nuevo Ticket")
 
         with st.form(key="ticket_form"):
             titulo = st.text_input("Título del Incidente")
@@ -143,14 +161,29 @@ def main():
             c1, c2 = st.columns(2)
             with c1:
                 porcentaje = st.slider("% Usuarios Afectados", 0, 100, 10, 5)
+
             with c2:
                 tipo_incidente = st.selectbox(
                     "Tipo de Incidente",
-                    ["Error/Falla", "Performance/Latencia", "Consulta/Soporte", "Cambio/Feature"]
+                    [
+                        "Disponibilidad",
+                        "Performance",
+                        "Cambio funcional",
+                        "Integración país",
+                        "Seguridad",
+                        "UI",
+                        "Notificaciones",
+                        "Reportes",
+                        "Acceso",
+                        "Facturación",
+                        "Personalización",
+                        "Webhooks",
+                        "SDK móvil",
+                        "Consulta"
+                    ]
                 )
 
             info_ctx = st.text_area("Información Contextual (Opcional)", height=50)
-
             enviar = st.form_submit_button("🚀 Clasificar Ticket")
 
         if enviar:
@@ -163,10 +196,10 @@ def main():
                     "cliente_afectado": cliente,
                     "porcentaje_afectado": porcentaje,
                     "tipo_incidente": tipo_incidente,
-                    "informacion_contextual": info_ctx,
+                    "informacion_contextual": info_ctx if info_ctx.strip() else None,
                 }
 
-                with st.spinner("Clasificando ticket con RAG + LLM..."):
+                with st.spinner("Clasificando ticket con IA + RAG..."):
                     result = classify_ticket_api(payload)
 
                 if result:
@@ -174,11 +207,11 @@ def main():
                     st.session_state["feedback_status"] = "Pendiente"
                     st.rerun()
 
-    # Mostrar resultados
+    # Mostrar resultado
     if st.session_state["classification_result"]:
         display_classification_result(st.session_state["classification_result"])
     else:
-        st.info("Radica un ticket en la barra lateral para comenzar.")
+        st.info("Radica un ticket desde la barra lateral para comenzar.")
 
 
 if __name__ == "__main__":

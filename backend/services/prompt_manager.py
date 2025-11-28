@@ -64,30 +64,33 @@ class PromptManager:
     def generate_prompt(self, ticket_input: TicketInput, rag_results: List[RAGDocument], output_schema_json: str) -> str:
 
         system_prompt = (
-            "ERES UN INGENIERO DE SOPORTE EXPERTO Y CLASIFICADOR DE TICKETS.\n"
-            "Usa estrictamente las reglas de negocio y la evidencia histórica (RAG).\n"
-            "DEVUELVE ÚNICAMENTE el JSON final, SIN texto adicional.\n\n"
+            "ERES UN SISTEMA ESTRICTO DE CLASIFICACIÓN DE TICKETS.\n"
+            "DEBES ASIGNAR LA PRIORIDAD EXCLUSIVAMENTE SEGÚN EL PORCENTAJE DE AFECTACIÓN, "
+            "USANDO LA SIGUIENTE TABLA, SIN EXCEPCIONES:\n\n"
+
+            "TABLA OFICIAL DE PRIORIDAD:\n"
+            "   - Si AFECTACIÓN es entre 81% y 100% → PRIORIDAD = P1\n"
+            "   - Si AFECTACIÓN es entre 51% y 80%  → PRIORIDAD = P2\n"
+            "   - Si AFECTACIÓN es entre 21% y 50%  → PRIORIDAD = P3\n"
+            "   - Si AFECTACIÓN es entre 0%  y 20%  → PRIORIDAD = P4\n\n"
+
+            "INTERPRETA LA AFECTACIÓN DE ESTA FORMA:\n"
+            "   - 'entre X e Y' significa INCLUYENDO ambos limites.\n"
+            "   - Si el porcentaje está EXACTAMENTE en un límite, usa la categoría más alta.\n\n"
+
+            "EJEMPLOS PARA QUE NO TE EQUIVOQUES:\n"
+            "   - 100%, 95%, 82% → siempre P1.\n"
+            "   - 80%, 75%, 60%, 55%, 51% → siempre P2.\n"
+            "   - 50%, 40%, 25%, 21% → siempre P3.\n"
+            "   - 20%, 10%, 5%, 0% → siempre P4.\n\n"
+
+            "ESTA TABLA ES OBLIGATORIA. NO PUEDES CAMBIAR LA PRIORIDAD POR NINGÚN MOTIVO.\n"
+            "NO IMPORTA EL CLIENTE, EL RAG, NI LA DESCRIPCIÓN: "
+            "LA PRIORIDAD SIEMPRE SE DETERMINA SÓLO CON EL PORCENTAJE DE AFECTACIÓN.\n\n"
+
+            "DEVUELVE SOLO EL JSON FINAL.\n\n"
         )
 
-        # INSERCIÓN DE REGLAS ESTRICTAS DE IMPACTO
-        system_prompt += (
-            "--- JERARQUÍA DE PRIORIDAD Y TIEMPO INVIOLABLE ---\n"
-            "El objetivo es asignar la Prioridad MÁXIMA que cumpla CUALQUIERA de las siguientes condiciones, evaluadas en orden (de P1 a P4):\n\n"
-            
-            "*** 1. REGLA DE RIESGO MÁXIMO (DOMINANTE) ***\n"
-            "**PRIORIDAD CRÍTICA (P1):** Asignar si el 'Cliente' tiene el estado 'En Riesgo de Churn'. Esta condición es INVIOLABLE y ANULA cualquier otra regla (SLA Objetivo: 4 horas).\n"
-            
-            "*** 2. REGLAS DE IMPACTO (Aplicar SOLO si NO es P1 por Riesgo) ***\n"
-            "**PRIORIDAD CRÍTICA (P1):** Si '% Afectación' es **90% o más** y 'Tipo de Incidente' es Error/Falla. (SLA Objetivo: 4 horas).\n"
-            "**PRIORIDAD ALTA (P2):** Si '% Afectación' está entre **50% y 89%**. (SLA Objetivo: 2 días hábiles).\n"
-            "**PRIORIDAD MEDIA (P3):** Si '% Afectación' es **menor a 50%**. (SLA Objetivo: 5 días hábiles).\n"
-            "**PRIORIDAD BAJA (P4):** Si 'Tipo de Incidente' es Requerimiento/Cambio. (SLA Objetivo: 10 días hábiles).\n"
-            
-            "--- CÁLCULO DE TIEMPO ESTIMADO DE RESOLUCIÓN ---\n"
-            "- El campo 'tiempo_estimado_resolucion' **NO ES** el SLA. Debe ser el tiempo promedio de solución histórica (RAG).\n"
-            "- Si **NO** hay evidencia histórica RAG relevante (similitud < 0.5), el 'tiempo_estimado_resolucion' DEBE ser el **'Tiempo Objetivo de Solución' (SLA Objetivo)** de la prioridad asignada.\n"
-            "---------------------------------------------------\n"
-        )
 
         system_prompt += self._generate_business_rules() + "\n"
 
@@ -103,12 +106,25 @@ class PromptManager:
         system_prompt += self._format_rag_documents(rag_results) + "\n"
 
         system_prompt += (
-            "IMPORTANTE:\n"
+            "IMPORTANTE SOBRE TIEMPO ESTIMADO:\n"
             "- El campo 'tiempo_estimado_resolucion' NO ES el SLA.\n"
-            "- Debe calcularse usando EXCLUSIVAMENTE los tiempos históricos recuperados por el RAG.\n"
-            "- Si los documentos históricos muestran tiempos entre 40 y 60 minutos, el estimado debe estar en ese rango.\n"
-            "- Solo usar el SLA si NO existe evidencia histórica (RAG=vacío o similitud < 0.5).\n"
-            "- Nunca inventes tiempos que no se basen en evidencia.\n\n"
+            "- Debe calcularse usando EXCLUSIVAMENTE los tiempos históricos de los tickets recuperados por RAG.\n"
+            "- Lee los tiempos de resolución que aparecen en los tickets históricos (por ejemplo: '45 minutos', '3 horas', "
+            "'5 horas', '2 días hábiles') y genera un tiempo estimado coherente con esos valores (misma unidad de medida y "
+            "mismo orden de magnitud).\n"
+            "- Si NO hay evidencia histórica relevante (RAG vacío o poco similar), recién ahí puedes usar el SLA como "
+            "referencia aproximada.\n"
+            "- Nunca inventes tiempos genéricos como '40-60 minutos' si los históricos hablan en horas o días.\n\n"
+        )
+
+        system_prompt += (
+        "IMPORTANTE SOBRE 'sla_objetivo':\n"
+        "- Debe corresponder EXACTAMENTE a la prioridad final asignada:\n"
+        "    * P1 → 1 hora\n"
+        "    * P2 → 4 horas\n"
+        "    * P3 → 24 horas\n"
+        "    * P4 → 72 horas\n"
+        "- NO inventes otros valores.\n\n"
         )
 
         system_prompt += (

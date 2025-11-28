@@ -51,13 +51,14 @@ async def classify_ticket_endpoint(ticket_data: TicketInput):
         raise HTTPException(status_code=503, detail="Clasificador no disponible.")
 
     try:
-        return classifier.classify_ticket(ticket_data)
+        result = classifier.classify_ticket(ticket_data)
+        return result
 
     except Exception as e:
         print(f"Error procesando ticket: {e}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error interno de clasificación: {str(e)}"
+            detail=f"Error en clasificación LLM: {str(e)}"
         )
 
 
