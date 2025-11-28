@@ -17,7 +17,7 @@ st.set_page_config(
 )
 
 # URL del Backend FastAPI
-API_URL = "http://127.0.0.1:8000/classify"
+API_URL = "https://ticket-classifier-ia.onrender.com/classify"
 
 # Colores para prioridad
 PRIORITY_COLORS = {
