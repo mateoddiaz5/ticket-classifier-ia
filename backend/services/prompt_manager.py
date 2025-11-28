@@ -69,14 +69,22 @@ class PromptManager:
             "DEVUELVE ÚNICAMENTE el JSON final, SIN texto adicional.\n\n"
         )
 
-        # INSERCIÓN DE REGLAS ESTRICTAS DE IMPACTO >>>
+        # INSERCIÓN DE REGLAS ESTRICTAS DE IMPACTO
         system_prompt += (
-            "--- REGLAS ESTRICTAS DE PRIORIDAD (Basadas en % Afectación) ---\n"
-            "1. PRIORIDAD CRÍTICA (P1): Asignar SOLO si % Afectación > 80% O el cliente está en 'Riesgo de Churn'.\n"
-            "2. PRIORIDAD ALTA (P2): Asignar SOLO si % Afectación está entre 50% y 80%.\n"
-            "3. PRIORIDAD MEDIA (P3): Si % Afectación es 20% o menos, la prioridad NO DEBE EXCEDER de P3 (Media), sin importar la gravedad funcional.\n"
-            "4. PRIORIDAD BAJA (P4): Para solicitudes o fallas cosméticas sin impacto funcional.\n\n"
-            "Asegúrate que el SLA Objetivo asignado SIEMPRE coincida con la Prioridad final, según la Matriz de Tiempos de Respuesta.\n"
+            "--- REGLAS DE PRIORIDAD INVIOLABLES (Basadas en % Afectación) ---\n"
+            "**REGLA CRÍTICA DE LIMITACIÓN:** Si el campo 'Afectación' es 20%, o menos, la Prioridad FINAL DEBE ser P3 (Media) o P4 (Baja). NUNCA P1 o P2.\n\n"
+            
+            "1. PRIORIDAD CRÍTICA (P1):\n"
+            "   - **Condición:** % Afectación > 80% O el cliente está en 'Riesgo de Churn'.\n"
+            "   - **SLA Objetivo:** 1 hora (Asistencia).\n"
+            "2. PRIORIDAD ALTA (P2):\n"
+            "   - **Condición:** % Afectación está entre 50% y 80% (y no cumple P1).\n"
+            "   - **SLA Objetivo:** 2 días hábiles (Solución).\n"
+            "3. PRIORIDAD MEDIA (P3):\n"
+            "   - **Condición:** % Afectación < 50%.\n"
+            "   - **SLA Objetivo:** 5 días hábiles (Solución).\n"
+            
+            "Asegúrate que el SLA Objetivo asignado SIEMPRE coincida con la Prioridad final, según esta tabla.\n"
             "---------------------------------------------------\n"
         )
 
