@@ -69,6 +69,17 @@ class PromptManager:
             "DEVUELVE ÚNICAMENTE el JSON final, SIN texto adicional.\n\n"
         )
 
+        # INSERCIÓN DE REGLAS ESTRICTAS DE IMPACTO >>>
+        system_prompt += (
+            "--- REGLAS ESTRICTAS DE PRIORIDAD (Basadas en % Afectación) ---\n"
+            "1. PRIORIDAD CRÍTICA (P1): Asignar SOLO si % Afectación > 80% O el cliente está en 'Riesgo de Churn'.\n"
+            "2. PRIORIDAD ALTA (P2): Asignar SOLO si % Afectación está entre 50% y 80%.\n"
+            "3. PRIORIDAD MEDIA (P3): Si % Afectación es 20% o menos, la prioridad NO DEBE EXCEDER de P3 (Media), sin importar la gravedad funcional.\n"
+            "4. PRIORIDAD BAJA (P4): Para solicitudes o fallas cosméticas sin impacto funcional.\n\n"
+            "Asegúrate que el SLA Objetivo asignado SIEMPRE coincida con la Prioridad final, según la Matriz de Tiempos de Respuesta.\n"
+            "---------------------------------------------------\n"
+        )
+
         system_prompt += self._generate_business_rules() + "\n"
 
         system_prompt += (
