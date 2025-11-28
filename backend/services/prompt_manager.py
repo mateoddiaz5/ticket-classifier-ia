@@ -71,20 +71,21 @@ class PromptManager:
 
         # INSERCIÓN DE REGLAS ESTRICTAS DE IMPACTO
         system_prompt += (
-            "--- REGLAS DE PRIORIDAD INVIOLABLES (Basadas en % Afectación) ---\n"
-            "**REGLA CRÍTICA DE LIMITACIÓN:** Si el campo 'Afectación' es 20%, o menos, la Prioridad FINAL DEBE ser P3 (Media) o P4 (Baja). NUNCA P1 o P2.\n\n"
+            "--- JERARQUÍA DE PRIORIDAD Y TIEMPO INVIOLABLE ---\n"
+            "El objetivo es asignar la Prioridad MÁXIMA que cumpla CUALQUIERA de las siguientes condiciones, evaluadas en orden (de P1 a P4):\n\n"
             
-            "1. PRIORIDAD CRÍTICA (P1):\n"
-            "   - **Condición:** % Afectación > 80% O el cliente está en 'Riesgo de Churn'.\n"
-            "   - **SLA Objetivo:** 1 hora (Asistencia).\n"
-            "2. PRIORIDAD ALTA (P2):\n"
-            "   - **Condición:** % Afectación está entre 50% y 80% (y no cumple P1).\n"
-            "   - **SLA Objetivo:** 2 días hábiles (Solución).\n"
-            "3. PRIORIDAD MEDIA (P3):\n"
-            "   - **Condición:** % Afectación < 50%.\n"
-            "   - **SLA Objetivo:** 5 días hábiles (Solución).\n"
+            "*** 1. REGLA DE RIESGO MÁXIMO (DOMINANTE) ***\n"
+            "**PRIORIDAD CRÍTICA (P1):** Asignar si el 'Cliente' tiene el estado 'En Riesgo de Churn'. Esta condición es INVIOLABLE y ANULA cualquier otra regla (SLA Objetivo: 4 horas).\n"
             
-            "Asegúrate que el SLA Objetivo asignado SIEMPRE coincida con la Prioridad final, según esta tabla.\n"
+            "*** 2. REGLAS DE IMPACTO (Aplicar SOLO si NO es P1 por Riesgo) ***\n"
+            "**PRIORIDAD CRÍTICA (P1):** Si '% Afectación' es **90% o más** y 'Tipo de Incidente' es Error/Falla. (SLA Objetivo: 4 horas).\n"
+            "**PRIORIDAD ALTA (P2):** Si '% Afectación' está entre **50% y 89%**. (SLA Objetivo: 2 días hábiles).\n"
+            "**PRIORIDAD MEDIA (P3):** Si '% Afectación' es **menor a 50%**. (SLA Objetivo: 5 días hábiles).\n"
+            "**PRIORIDAD BAJA (P4):** Si 'Tipo de Incidente' es Requerimiento/Cambio. (SLA Objetivo: 10 días hábiles).\n"
+            
+            "--- CÁLCULO DE TIEMPO ESTIMADO DE RESOLUCIÓN ---\n"
+            "- El campo 'tiempo_estimado_resolucion' **NO ES** el SLA. Debe ser el tiempo promedio de solución histórica (RAG).\n"
+            "- Si **NO** hay evidencia histórica RAG relevante (similitud < 0.5), el 'tiempo_estimado_resolucion' DEBE ser el **'Tiempo Objetivo de Solución' (SLA Objetivo)** de la prioridad asignada.\n"
             "---------------------------------------------------\n"
         )
 
